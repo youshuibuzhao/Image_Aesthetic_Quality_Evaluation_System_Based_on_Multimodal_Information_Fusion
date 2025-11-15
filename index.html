@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片美学评估系统</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+
+        .upload-section {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        #imagePreview {
+            max-width: 100%;
+            max-height: 400px;
+            margin: 20px auto;
+            display: none;
+        }
+
+        .results {
+            margin-top: 20px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .error {
+            color: red;
+            text-align: center;
+            margin: 10px 0;
+            display: none;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .result-item {
+            margin: 10px 0;
+        }
+
+        .result-label {
+            font-weight: bold;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>图片美学评估系统</h1>
+
+        <div class="upload-section">
+            <input type="file" id="imageInput" accept="image/*" style="display: none;">
+            <button onclick="document.getElementById('imageInput').click()">选择图片</button>
+        </div>
+
+        <img id="imagePreview" alt="预览图片">
+
+        <div class="loading">
+            处理中，请稍候...
+        </div>
+
+        <div class="error"></div>
+
+        <div class="results">
+            <div class="result-item">
+                <div class="result-label">美学评分：</div>
+                <div id="aestheticScore"></div>
+            </div>
+            <div class="result-item">
+                <div class="result-label">图片描述：</div>
+                <div id="imageCaption"></div>
+            </div>
+            <div class="result-item">
+                <div class="result-label">详细分析：</div>
+                <div id="apiDescription"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const imageInput = document.getElementById('imageInput');
+        const imagePreview = document.getElementById('imagePreview');
+        const loading = document.querySelector('.loading');
+        const results = document.querySelector('.results');
+        const error = document.querySelector('.error');
+
+        imageInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // 显示图片预览
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.src = e.target.result;
+                    imagePreview.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+
+                // 处理图片
+                processImage(file);
+            }
+        });
+
+        function processImage(file) {
+            // 显示加载状态
+            loading.style.display = 'block';
+            results.style.display = 'none';
+            error.style.display = 'none';
+
+            const formData = new FormData();
+            formData.append('image', file);
+
+            fetch('http://localhost:5000/process_image', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                loading.style.display = 'none';
+                if (data.error) {
+                    showError(data.error);
+                } else {
+                    showResults(data);
+                }
+            })
+            .catch(err => {
+                loading.style.display = 'none';
+                showError('处理图片时发生错误：' + err.message);
+            });
+        }
+
+        function showResults(data) {
+            document.getElementById('aestheticScore').textContent = data.aesthetic_score;
+            document.getElementById('imageCaption').textContent = data.image_caption;
+            document.getElementById('apiDescription').textContent = data.api_description;
+            results.style.display = 'block';
+        }
+
+        function showError(message) {
+            error.textContent = message;
+            error.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
